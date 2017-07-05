@@ -5,8 +5,12 @@ import torch.optim as optim
 from torch.autograd import Variable
 import datetime
 import numpy as np
+import os
 
-#os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+#OMP_NUM_THREADS = 4
+
+os.environ["OMP_NUM_THREADS"] = "4"
+
 start = datetime.datetime.now()
 
 #make every sentence to index sequence
@@ -48,7 +52,7 @@ def read_corpus(filename):
 
 	return data
 
-training_data = read_corpus('test')
+training_data = read_corpus('train')
 
 print('the length of training data')
 print(len(training_data))
@@ -70,8 +74,8 @@ print (len(tag_to_ix))
 print ("len of tag")
 print (len(tag_to_ix))
 
-EMBEDDING_DIM = 100
-HIDDEN_DIM = 100
+EMBEDDING_DIM = 300
+HIDDEN_DIM = 300
 
 
 class LSTMTagger(nn.Module):
@@ -118,7 +122,7 @@ tag_score = model(inputs)
 
 print (tag_score)
 
-for epoch in range(3):
+for epoch in range(30):
 
 	print ("in epoch %d" % epoch)
 
@@ -169,16 +173,18 @@ for sentence, tags in testing_data:
 
 	for t in range(len(targets)):
 		total_count += 1
-		print("targets and tag_scores")
-		print(targets[t])
+		#print("targets and tag_scores")
+		#print(targets[t])
 		index = np.argmax(tag_scores[t])
-
+		#max_value = torch.max(tag_scores[t])
+		
+		#print(tag_scores[t].type(dtype))
         if targets[t] == index:
         	correct_count += 1
 
 print('Correct: %d' % correct_count)
 print('Total: %d' % total_count)
-print('Performance: %f' % (correct_count/total_count))
+print('Performance: %f' % (float(correct_count)/float(total_count)))
 
 end = datetime.datetime.now()
 

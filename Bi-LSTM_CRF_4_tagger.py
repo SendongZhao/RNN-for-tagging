@@ -6,6 +6,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
 import datetime
+import os
+os.environ["OMP_NUM_THREADS"] = "2"
 
 torch.manual_seed(1)
 
@@ -186,8 +188,8 @@ class BiLSTM_CRF(nn.Module):
 
 START_TAG = "<START>"
 STOP_TAG = "<STOP>"
-EMBEDDING_DIM = 100
-HIDDEN_DIM = 100
+EMBEDDING_DIM = 300
+HIDDEN_DIM = 300
 
 #Read data from file
 def read_corpus(filename):
@@ -216,7 +218,7 @@ def read_corpus(filename):
 
     return data
 
-training_data = read_corpus('test')
+training_data = read_corpus('train')
 
 word_to_ix = {}
 tag_to_ix = {START_TAG: 0, STOP_TAG: 1}
@@ -241,8 +243,7 @@ precheck_tags = torch.LongTensor([tag_to_ix[t] for t in training_data[0][1]])
 print(model(precheck_sent))
 
 # Make sure prepare_sequence from earlier in the LSTM section is loaded
-for epoch in range(
-        300):  # again, normally you would NOT do 300 epochs, it is toy data
+for epoch in range(30):  # again, normally you would NOT do 30 epochs, it is toy data
     for sentence, tags in training_data:
         # Step 1. Remember that Pytorch accumulates gradients.
         # We need to clear them out before each instance
@@ -283,15 +284,15 @@ for sentence, tags in testing_data:
 
 	for t in range(len(targets)):
 		total_count += 1
-		print("targets and tag_scores")
-		print(targets[t])
+		#print("targets and tag_scores")
+		#print(targets[t])
 		index = np.argmax(tag_scores[t])
         if targets[t] == index:
         	correct_count += 1
 
 print('Correct: %d' % correct_count)
 print('Total: %d' % total_count)
-print('Performance: %f' % (correct_count/total_count))
+print('Performance: %f' % (float(correct_count)/float(total_count)))
 
 end = datetime.datetime.now()
 

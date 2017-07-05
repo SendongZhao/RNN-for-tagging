@@ -4,6 +4,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 import datetime
+import os
+os.environ["OMP_NUM_THREADS"] = "2"
 
 start = datetime.datetime.now()
 
@@ -66,8 +68,8 @@ for sent, tags in training_data:
 
 print (len(tag_to_ix))
 
-EMBEDDING_DIM = 100
-HIDDEN_DIM = 100
+EMBEDDING_DIM = 300
+HIDDEN_DIM = 300
 
 
 class LSTMTagger(nn.Module):
@@ -77,7 +79,7 @@ class LSTMTagger(nn.Module):
 		self.hidden_dim = hidden_dim
 
 		self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)
-		self.lstm = nn.LSTM(embedding_dim, hidden_dim //2, bidirectional=True)
+		self.lstm = nn.LSTM(embedding_dim, hidden_dim // 2, num_layers=1, bidirectional=True)
 
 		self.hidden2tag = nn.Linear(hidden_dim, tagset_size)
 
@@ -85,8 +87,8 @@ class LSTMTagger(nn.Module):
 
 	def init_hidden(self):
 
-		return (Variable(torch.zeros(1, 1, self.hidden_dim//2)),
-			Variable(torch.zeros(1, 1, self.hidden_dim//2)))
+		return (Variable(torch.randn(2, 1, self.hidden_dim // 2)),
+			Variable(torch.randn(2, 1, self.hidden_dim // 2)))
 
 	def forward(self, sentence):
 		embeds = self.word_embeddings(sentence)
@@ -111,13 +113,11 @@ optimizer = optim.SGD(model.parameters(), lr = 0.1)
 
 
 inputs = prepare_sequence(training_data[0][0], word_to_ix)
-
-
 tag_score = model(inputs)
 
 print (tag_score)
 
-for epoch in range(300):
+for epoch in range(20):
 	for sentence, tags in training_data:
 
 		model.zero_grad()
@@ -164,8 +164,8 @@ for sentence, tags in testing_data:
 
 	for t in range(len(targets)):
 		total_count += 1
-		print("targets and tag_scores")
-		print(targets[t])
+		#print("targets and tag_scores")
+		#print(targets[t])
 		index = np.argmax(tag_scores[t])
 
         if targets[t] == index:
@@ -173,7 +173,7 @@ for sentence, tags in testing_data:
 
 print('Correct: %d' % correct_count)
 print('Total: %d' % total_count)
-print('Performance: %f' % (correct_count/total_count))
+print('Performance: %f' % (float(correct_count)/float(total_count)))
 
 end = datetime.datetime.now()
 
