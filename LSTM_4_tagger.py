@@ -4,7 +4,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 import datetime
+import numpy as np
 
+#os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 start = datetime.datetime.now()
 
 #make every sentence to index sequence
@@ -46,7 +48,7 @@ def read_corpus(filename):
 
 	return data
 
-training_data = read_corpus('train')
+training_data = read_corpus('test')
 
 print('the length of training data')
 print(len(training_data))
@@ -63,6 +65,9 @@ for sent, tags in training_data:
 		if tag not in tag_to_ix:
 			tag_to_ix[tag] = len(tag_to_ix)
 
+print (len(tag_to_ix))
+
+print ("len of tag")
 print (len(tag_to_ix))
 
 EMBEDDING_DIM = 100
@@ -113,7 +118,10 @@ tag_score = model(inputs)
 
 print (tag_score)
 
-for epoch in range(300):
+for epoch in range(3):
+
+	print ("in epoch %d" % epoch)
+
 	for sentence, tags in training_data:
 
 		model.zero_grad()
@@ -137,9 +145,10 @@ for epoch in range(300):
 
 
 inputs = prepare_sequence(training_data[0][0], word_to_ix)
-tag_scores = model(inputs)
+tag_score = model(inputs)
 
-print(tag_scores)
+print("tag_socre")
+print(tag_score)
 
 
 #testing
@@ -160,7 +169,11 @@ for sentence, tags in testing_data:
 
 	for t in range(len(targets)):
 		total_count += 1
-        if targets[t] == tag_scores[t]:
+		print("targets and tag_scores")
+		print(targets[t])
+		index = np.argmax(tag_scores[t])
+
+        if targets[t] == index:
         	correct_count += 1
 
 print('Correct: %d' % correct_count)

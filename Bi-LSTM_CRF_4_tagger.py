@@ -275,16 +275,19 @@ correct_count = 0
 
 for sentence, tags in testing_data:
 
-    sentence_in = prepare_sequence(sentence, word_to_ix)
+	sentence_in = prepare_sequence(sentence, word_to_ix)
 
-    targets = prepare_sequence(tags, tag_to_ix)
+	targets = prepare_sequence(tags, tag_to_ix)
 
-    tag_scores = model(sentence_in)
+	tag_scores = model(sentence_in)
 
-    for t in range(len(targets)):
-        total_count += 1
-        if targets[t] == tag_scores[t]:
-            correct_count += 1
+	for t in range(len(targets)):
+		total_count += 1
+		print("targets and tag_scores")
+		print(targets[t])
+		index = np.argmax(tag_scores[t])
+        if targets[t] == index:
+        	correct_count += 1
 
 print('Correct: %d' % correct_count)
 print('Total: %d' % total_count)

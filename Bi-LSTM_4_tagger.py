@@ -164,7 +164,11 @@ for sentence, tags in testing_data:
 
 	for t in range(len(targets)):
 		total_count += 1
-        if targets[t] == tag_scores[t]:
+		print("targets and tag_scores")
+		print(targets[t])
+		index = np.argmax(tag_scores[t])
+
+        if targets[t] == index:
         	correct_count += 1
 
 print('Correct: %d' % correct_count)
@@ -174,4 +178,5 @@ print('Performance: %f' % (correct_count/total_count))
 end = datetime.datetime.now()
 
 print (end - start)
+
 
