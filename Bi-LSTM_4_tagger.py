@@ -5,19 +5,19 @@ import torch.optim as optim
 from torch.autograd import Variable
 import datetime
 import os
-os.environ["OMP_NUM_THREADS"] = "2"
+
+os.environ["OMP_NUM_THREADS"] = "3"
 
 start = datetime.datetime.now()
 
 #make every sentence to index sequence
 def prepare_sequence(seq, to_ix):
 	idxs = []
-	for i, w in enumerate(seq):
+	for w in seq:
 		if not to_ix.has_key(w):
-			idxs.append(-1)
+			idxs.append(0)
 		else:
 			idxs.append(to_ix[w])
-	#idxs = [to_ix[w] for w in seq] 
 	tensor = torch.LongTensor(idxs)
 	return Variable(tensor)
 
@@ -41,6 +41,8 @@ def read_corpus(filename):
 		else:
 			if element_size is 0:
 				element_size = len(words)
+			#print (words[0])
+			#print (words[-1])
 			X.append(words[0])
 			Y.append(words[-1])
 	if len(X)>0:
@@ -49,10 +51,12 @@ def read_corpus(filename):
 	return data
 
 training_data = read_corpus('train')
-
-print('the length of training data')
+print('len of train data')
 print(len(training_data))
 
+testing_data = read_corpus('test')
+print ('len of test data')
+print (len(testing_data))
 
 word_to_ix = {}
 tag_to_ix = {}
@@ -61,39 +65,39 @@ for sent, tags in training_data:
 	for word in sent:
 		 if word not in word_to_ix:
 		 	 word_to_ix[word] = len(word_to_ix)
-	
+
 	for tag in tags:
 		if tag not in tag_to_ix:
 			tag_to_ix[tag] = len(tag_to_ix)
 
+print ("len of dictionary")
+print (len(word_to_ix))
+print ("len of tag")
 print (len(tag_to_ix))
 
-EMBEDDING_DIM = 300
-HIDDEN_DIM = 300
+EMBEDDING_DIM = 200
+HIDDEN_DIM = 200
 
+#print (word_to_ix)
+#print (tag_to_ix)
 
 class LSTMTagger(nn.Module):
 	"""docstring for LSTMTagger"""
 	def __init__(self, embedding_dim, hidden_dim, vocab_size, tagset_size):
 		super(LSTMTagger, self).__init__()
 		self.hidden_dim = hidden_dim
-
-		self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)
-		self.lstm = nn.LSTM(embedding_dim, hidden_dim // 2, num_layers=1, bidirectional=True)
-
+		self.word_embeddings = nn.Embedding(vocab_size, embedding_dim, padding_idx = 0)
+		self.lstm = nn.LSTM(embedding_dim, hidden_dim//2, num_layers = 1, bidirectional = True)
+		
 		self.hidden2tag = nn.Linear(hidden_dim, tagset_size)
-
+		
 		self.hidden = self.init_hidden()
 
 	def init_hidden(self):
-
-		return (Variable(torch.randn(2, 1, self.hidden_dim // 2)),
-			Variable(torch.randn(2, 1, self.hidden_dim // 2)))
+		return (Variable(torch.randn(2, 1, self.hidden_dim // 2)),Variable(torch.randn(2, 1, self.hidden_dim // 2)))
 
 	def forward(self, sentence):
 		embeds = self.word_embeddings(sentence)
-
-		#lstm_out()
 
 		lstm_out, self.hidden = self.lstm(embeds.view(len(sentence), 1, -1), self.hidden)
 
@@ -101,7 +105,9 @@ class LSTMTagger(nn.Module):
 
 		tag_score = F.log_softmax(tag_space)
 
-		return tag_score
+		_, tag_seq = torch.max(tag_score, 1)
+
+		return tag_score, tag_seq
 
 
 #training
@@ -109,74 +115,64 @@ model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(word_to_ix), len(tag_to_ix))
 
 loss_fn = nn.NLLLoss()
 
-optimizer = optim.SGD(model.parameters(), lr = 0.1)
-
-
-inputs = prepare_sequence(training_data[0][0], word_to_ix)
-tag_score = model(inputs)
-
-print (tag_score)
+optimizer = optim.SGD(model.parameters(), lr = 0.001)
 
 for epoch in range(20):
-	for sentence, tags in training_data:
 
+	print ("in epoch %d" % epoch)
+
+	for sentence, tags in training_data:
+	    
 		model.zero_grad()
 
 		model.hidden = model.init_hidden()
 
 		sentence_in = prepare_sequence(sentence, word_to_ix)
 		
-		#print ("####")
-		#print sentence_in.data[1:4]
-		
 		targets = prepare_sequence(tags, tag_to_ix)
 
-		tag_scores = model(sentence_in)
+		tag_scores, _ = model(sentence_in)
 
 		loss = loss_fn(tag_scores, targets)
+
+		#print (loss.data[0])
 
 		loss.backward()
 
 		optimizer.step()
 
-
-inputs = prepare_sequence(training_data[0][0], word_to_ix)
-tag_scores = model(inputs)
-
-print(tag_scores)
-
-
 #testing
-#torch.save(model.state_dict(), 'LSTM4tagger.pkl')
-testing_data = read_corpus('test')
-#model.load_state_dict(torch.load('LSTM4tagger.pkl'))
-
 total_count = 0
 correct_count = 0
+wrong_count = 0
+
+print ("start testing")
 
 for sentence, tags in testing_data:
-
+    
 	sentence_in = prepare_sequence(sentence, word_to_ix)
-
 	targets = prepare_sequence(tags, tag_to_ix)
-
-	tag_scores = model(sentence_in)
-
+	#print (targets)
+	tag_scores, idx = model(sentence_in)
+	#print (idx)
+	#print (tag_scores)
+	
 	for t in range(len(targets)):
 		total_count += 1
-		#print("targets and tag_scores")
-		#print(targets[t])
-		index = np.argmax(tag_scores[t])
-
-        if targets[t] == index:
-        	correct_count += 1
+		index = idx[t].data[0]
+		
+		if targets[t].data[0] == index:
+			correct_count += 1
+		else:
+			wrong_count += 1
+            #print ("&&&&&&&&&&&")
+            #print targets[t].data[0], index
 
 print('Correct: %d' % correct_count)
+print('Wrong: %d' % wrong_count)
 print('Total: %d' % total_count)
 print('Performance: %f' % (float(correct_count)/float(total_count)))
 
 end = datetime.datetime.now()
 
 print (end - start)
-
-

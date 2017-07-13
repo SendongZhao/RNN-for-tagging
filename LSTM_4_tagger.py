@@ -103,9 +103,9 @@ class LSTMTagger(nn.Module):
 
 		tag_space = self.hidden2tag(lstm_out.view(len(sentence), -1))
 
-		tag_score = F.log_softmax(tag_space)
+		_, tag_seq = torch.max(tag_score, 1)
 
-		return tag_score
+		return tag_score, tag_seq
 
 
 #training
@@ -162,27 +162,28 @@ testing_data = read_corpus('test')
 
 total_count = 0
 correct_count = 0
+wrong_count = 0
 
 for sentence, tags in testing_data:
-
-	sentence_in = prepare_sequence(sentence, word_to_ix)
-
-	targets = prepare_sequence(tags, tag_to_ix)
-
-	tag_scores = model(sentence_in)
-
-	for t in range(len(targets)):
-		total_count += 1
-		#print("targets and tag_scores")
-		#print(targets[t])
-		index = np.argmax(tag_scores[t])
-		#max_value = torch.max(tag_scores[t])
-		
-		#print(tag_scores[t].type(dtype))
-        if targets[t] == index:
-        	correct_count += 1
+    
+    sentence_in = prepare_sequence(sentence, word_to_ix)
+    targets = prepare_sequence(tags, tag_to_ix)
+    #print (targets)
+    tag_scores, idx = model(sentence_in)
+    #print (idx)
+    #print (tag_scores)
+    
+    for t in range(len(targets)):
+        total_count += 1
+        index = idx[t].data[0]
+        
+        if targets[t].data[0] == index:
+            correct_count += 1
+        else:
+            wrong_count += 1
 
 print('Correct: %d' % correct_count)
+print('Wrong: %d' % wrong_count)
 print('Total: %d' % total_count)
 print('Performance: %f' % (float(correct_count)/float(total_count)))
 

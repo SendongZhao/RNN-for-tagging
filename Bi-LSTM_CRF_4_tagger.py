@@ -6,8 +6,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
 import datetime
-import os
-os.environ["OMP_NUM_THREADS"] = "2"
 
 torch.manual_seed(1)
 
@@ -188,8 +186,8 @@ class BiLSTM_CRF(nn.Module):
 
 START_TAG = "<START>"
 STOP_TAG = "<STOP>"
-EMBEDDING_DIM = 300
-HIDDEN_DIM = 300
+EMBEDDING_DIM = 100
+HIDDEN_DIM = 100
 
 #Read data from file
 def read_corpus(filename):
@@ -218,7 +216,7 @@ def read_corpus(filename):
 
     return data
 
-training_data = read_corpus('train')
+training_data = read_corpus('test')
 
 word_to_ix = {}
 tag_to_ix = {START_TAG: 0, STOP_TAG: 1}
@@ -243,7 +241,8 @@ precheck_tags = torch.LongTensor([tag_to_ix[t] for t in training_data[0][1]])
 print(model(precheck_sent))
 
 # Make sure prepare_sequence from earlier in the LSTM section is loaded
-for epoch in range(30):  # again, normally you would NOT do 30 epochs, it is toy data
+for epoch in range(
+        300):  # again, normally you would NOT do 300 epochs, it is toy data
     for sentence, tags in training_data:
         # Step 1. Remember that Pytorch accumulates gradients.
         # We need to clear them out before each instance
@@ -273,26 +272,31 @@ testing_data = read_corpus('test')
 
 total_count = 0
 correct_count = 0
+wrong_count = 0
 
 for sentence, tags in testing_data:
-
-	sentence_in = prepare_sequence(sentence, word_to_ix)
-
-	targets = prepare_sequence(tags, tag_to_ix)
-
-	tag_scores = model(sentence_in)
-
-	for t in range(len(targets)):
-		total_count += 1
-		#print("targets and tag_scores")
-		#print(targets[t])
-		index = np.argmax(tag_scores[t])
-        if targets[t] == index:
-        	correct_count += 1
+    
+    sentence_in = prepare_sequence(sentence, word_to_ix)
+    targets = prepare_sequence(tags, tag_to_ix)
+    #print (targets)
+    tag_scores, idx = model(sentence_in)
+    #print (idx)
+    #print (tag_scores)
+    
+    for t in range(len(targets)):
+        total_count += 1
+        index = idx[t].data[0]
+        
+        if targets[t].data[0] == index:
+            correct_count += 1
+        else:
+            wrong_count += 1
 
 print('Correct: %d' % correct_count)
+print('Wrong: %d' % wrong_count)
 print('Total: %d' % total_count)
 print('Performance: %f' % (float(correct_count)/float(total_count)))
+
 
 end = datetime.datetime.now()
 
