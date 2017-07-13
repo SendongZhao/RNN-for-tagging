@@ -113,7 +113,7 @@ model = LSTMTagger(EMBEDDING_DIM, HIDDEN_DIM, len(word_to_ix), len(tag_to_ix))
 
 loss_fn = nn.NLLLoss()
 
-optimizer = optim.SGD(model.parameters(), lr = 0.1)
+optimizer = optim.SGD(model.parameters(), lr = 0.001)
 
 
 inputs = prepare_sequence(training_data[0][0], word_to_ix)
