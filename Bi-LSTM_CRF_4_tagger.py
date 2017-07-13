@@ -233,7 +233,7 @@ for sent, tags in training_data:
 print (len(tag_to_ix))
 
 model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, HIDDEN_DIM)
-optimizer = optim.SGD(model.parameters(), lr=0.01, weight_decay=1e-4)
+optimizer = optim.SGD(model.parameters(), lr=0.001, weight_decay=1e-4)
 
 # Check predictions before training
 precheck_sent = prepare_sequence(training_data[0][0], word_to_ix)
