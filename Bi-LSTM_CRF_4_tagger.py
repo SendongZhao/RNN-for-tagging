@@ -6,6 +6,9 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
 import datetime
+import os
+
+os.environ["OMP_NUM_THREADS"] = "6"
 
 torch.manual_seed(1)
 
@@ -27,7 +30,7 @@ def prepare_sequence(seq, to_ix):
     idxs = []
     for i, w in enumerate(seq):
         if not to_ix.has_key(w):
-            idxs.append(-1)
+            idxs.append(0)
         else:
             idxs.append(to_ix[w]) 
     #idxs = [to_ix[w] for w in seq] 
@@ -55,7 +58,7 @@ class BiLSTM_CRF(nn.Module):
         self.tag_to_ix = tag_to_ix
         self.tagset_size = len(tag_to_ix)
 
-        self.word_embeds = nn.Embedding(vocab_size, embedding_dim)
+        self.word_embeds = nn.Embedding(vocab_size, embedding_dim, padding_idx = 0)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim // 2,
                             num_layers=1, bidirectional=True)
 
@@ -86,7 +89,7 @@ class BiLSTM_CRF(nn.Module):
         for feat in feats:
             alphas_t = []  # The forward variables at this timestep
             for next_tag in range(self.tagset_size):
-                # broadcast the emission score: it is the same regardless of
+                # broadcaist the emission score: it is the same regardless of
                 # the previous tag
                 emit_score = feat[next_tag].view(
                     1, -1).expand(1, self.tagset_size)
@@ -233,7 +236,7 @@ for sent, tags in training_data:
 print (len(tag_to_ix))
 
 model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, HIDDEN_DIM)
-optimizer = optim.SGD(model.parameters(), lr=0.001, weight_decay=1e-4)
+optimizer = optim.SGD(model.parameters(), lr=0.01, weight_decay=1e-4)
 
 # Check predictions before training
 precheck_sent = prepare_sequence(training_data[0][0], word_to_ix)
@@ -285,7 +288,7 @@ for sentence, tags in testing_data:
     
     for t in range(len(targets)):
         total_count += 1
-        index = idx[t].data[0]
+        index = idx[t]
         
         if targets[t].data[0] == index:
             correct_count += 1
